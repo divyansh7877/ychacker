@@ -102,10 +102,18 @@ Inspired by modern reading apps like Matter and Readwise—clean, typographic, w
 - Displays comment count and total discussion metrics
 
 #### 3. Search & Filter
-- Full-text search across titles and content
-- Filter by: time range, score threshold, domain, comment count
-- Sort by: relevance, date, score, comments
-- Saved search queries
+- **Client-side fuzzy search**: Instant filtering of loaded stories using Fuse.js
+- **Full-text search**: HN Algolia API (`hn.algolia.com/api/v1/search`) for comprehensive search
+- **Recent searches**: Stored in localStorage, shown in dropdown on focus
+- **Debounced input**: 300ms delay before triggering full search
+- **Search pagination**: Load more results for full searches
+
+#### 4. Search Interaction
+- Debounced input (300ms)
+- Recent searches shown on focus (up to 5)
+- Clear button to reset search
+- Results count displayed for full searches
+- Clear all recent searches option
 
 #### 4. Reading Experience
 - Clean reading mode for linked articles (when parseable)
@@ -200,7 +208,8 @@ Inspired by modern reading apps like Matter and Readwise—clean, typographic, w
 - **State**: React Context + useReducer for global state
 - **Data Fetching**: Server Components + client-side SWR for live updates
 - **Storage**: localStorage for saved items, IndexedDB for history
-- **API**: HN official API (https://hacker-news.firebaseio.com/v0/)
+- **Search**: Fuse.js (client-side fuzzy search) + HN Algolia API (full-text search)
+- **API**: HN official API (https://hacker-news.firebaseio.com/v0/) + HN Algolia (https://hn.algolia.com/api/v1)
 
 ### API Design
 
@@ -217,6 +226,11 @@ GET /api/stories/[id]
 GET /api/stories/[id]/comments
   Query: limit (default 20), sort (score|time)
   Response: { comments: Comment[], hasMore: boolean }
+
+GET /api/search
+  Query: q (search query), page (default 0)
+  Response: { stories: Story[], nextPage: number | null, total: number, query: string }
+  Notes: Proxies HN Algolia API for full-text search
 ```
 
 #### Data Models

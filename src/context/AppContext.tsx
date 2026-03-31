@@ -7,6 +7,8 @@ interface AppState {
   savedStories: SavedStory[];
   currentFeed: StoryType;
   theme: 'dark' | 'light';
+  searchQuery: string;
+  recentSearches: string[];
 }
 
 type Action =
@@ -14,12 +16,17 @@ type Action =
   | { type: 'UNSAVE_STORY'; payload: number }
   | { type: 'SET_FEED'; payload: StoryType }
   | { type: 'TOGGLE_THEME' }
-  | { type: 'LOAD_SAVED'; payload: SavedStory[] };
+  | { type: 'LOAD_SAVED'; payload: SavedStory[] }
+  | { type: 'SET_SEARCH_QUERY'; payload: string }
+  | { type: 'ADD_RECENT_SEARCH'; payload: string }
+  | { type: 'CLEAR_RECENT_SEARCHES' };
 
 const initialState: AppState = {
   savedStories: [],
   currentFeed: 'top',
   theme: 'dark',
+  searchQuery: '',
+  recentSearches: [],
 };
 
 function reducer(state: AppState, action: Action): AppState {
@@ -42,6 +49,16 @@ function reducer(state: AppState, action: Action): AppState {
       return { ...state, theme: state.theme === 'dark' ? 'light' : 'dark' };
     case 'LOAD_SAVED':
       return { ...state, savedStories: action.payload };
+    case 'SET_SEARCH_QUERY':
+      return { ...state, searchQuery: action.payload };
+    case 'ADD_RECENT_SEARCH': {
+      if (!action.payload.trim()) return state;
+      const filtered = state.recentSearches.filter(s => s !== action.payload);
+      const updated = [action.payload, ...filtered].slice(0, 5);
+      return { ...state, recentSearches: updated };
+    }
+    case 'CLEAR_RECENT_SEARCHES':
+      return { ...state, recentSearches: [] };
     default:
       return state;
   }
@@ -66,11 +83,26 @@ export function AppProvider({ children }: { children: ReactNode }) {
     if (theme === 'light') {
       dispatch({ type: 'TOGGLE_THEME' });
     }
+    const recent = localStorage.getItem('ychacker-recent-searches');
+    if (recent) {
+      try {
+        dispatch({ type: 'ADD_RECENT_SEARCH', payload: '' });
+        // Load actual recent searches
+        const searches = JSON.parse(recent);
+        searches.forEach((s: string) => {
+          dispatch({ type: 'ADD_RECENT_SEARCH', payload: s });
+        });
+      } catch {}
+    }
   }, []);
 
   useEffect(() => {
     localStorage.setItem('ychacker-saved', JSON.stringify(state.savedStories));
   }, [state.savedStories]);
+
+  useEffect(() => {
+    localStorage.setItem('ychacker-recent-searches', JSON.stringify(state.recentSearches));
+  }, [state.recentSearches]);
 
   useEffect(() => {
     document.documentElement.setAttribute('data-theme', state.theme);
